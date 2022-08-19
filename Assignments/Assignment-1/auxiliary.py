@@ -16,7 +16,7 @@ def cleanDirectory(dir_path):
 #extract compressed file to folder
 #handles tar, rar, zip, tar.gz
 def extract(compressedFile, destinationFolder):
-	print "extracting..."
+	print("extracting...")
 	compressedFile = normalizePathAndCheckExistence(compressedFile)
 	destinationFolder = normalizePathAndCheckExistence(destinationFolder)
 
@@ -25,11 +25,11 @@ def extract(compressedFile, destinationFolder):
 	isTar = "false"
 	isRar = "false"
 	isZip = "false"
-	if "tar archive" in output:
+	if b"tar archive" in output:
 		isTar = "true"
 	#if "RAR archive" in output:
 	#	isRar = "true"
-	if "Zip archive" in output:
+	if b"Zip archive" in output:
 		isZip = "true"
 
 	cwd = os.getcwd()
@@ -44,7 +44,7 @@ def extract(compressedFile, destinationFolder):
 	else:
 		subprocess.call(["tar","xfz",compressedFile])
 
-	print "DONE"
+	print("DONE")
 
 	os.chdir(cwd)
 
@@ -131,7 +131,7 @@ def runProgram(command, working_directory, stdoutFilename, stderrFilename, timeo
 	try:
 		ret = threadInstance.run()
 	except Exception as e:
-		print e
+		print(e)
 		with open(stderrFilename,"a+") as ferr:
 			ferr.write(str(e))
 		return -9999
@@ -141,7 +141,7 @@ def runProgram(command, working_directory, stdoutFilename, stderrFilename, timeo
 def normalizePathAndCheckExistence(path):
 	toReturn = os.path.abspath(path)
 	if not os.path.isfile(toReturn) and not os.path.isdir(toReturn):
-		print path + " does not exist\n"
+		print(path + " does not exist\n")
 		cleanExit(0)
 	return toReturn
 
