@@ -6,6 +6,10 @@ public class Predictor2400 extends Predictor {
     static final int nMask = (1 << n) - 1, mMask = (1 << m) - 1;
     Table _GHR, _PHT;
 
+    static private int mangle(long big, int small) {
+        return (int) big ^ small;
+    }
+
     public Predictor2400() {
         _GHR = new Table(1 << m, k);
         _PHT = new Table(1 << Math.max(n, k), l);
@@ -13,7 +17,7 @@ public class Predictor2400 extends Predictor {
 
     public void Train(long address, boolean outcome, boolean predict) {
         int ghrIdx = (int) ((address >> mOffset) & mMask);
-        int phtIdx = (int) (address & nMask) ^ _GHR.getInteger(ghrIdx, 0, k - 1);
+        int phtIdx = mangle(address & nMask, _GHR.getInteger(ghrIdx, 0, k - 1));
         int value = _PHT.getInteger(phtIdx, 0, l - 1);
         if (outcome)
             _PHT.setInteger(phtIdx, 0, l - 1, Math.min(value + 1, (1 << l) - 1));
@@ -26,7 +30,7 @@ public class Predictor2400 extends Predictor {
 
     public boolean predict(long address) {
         int ghrIdx = (int) ((address >> mOffset) & mMask);
-        return _PHT.getBit((int) (address & nMask) ^ _GHR.getInteger(ghrIdx, 0, k - 1), 0);
+        return _PHT.getBit(mangle(address & nMask, _GHR.getInteger(ghrIdx, 0, k - 1)), 0);
     }
 
 }

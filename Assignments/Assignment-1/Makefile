@@ -1,6 +1,6 @@
 jar/BranchPredictor.jar: *.java
-	ant
-	ant make-jar
+	ant > /dev/null
+	ant make-jar > /dev/null
 
 SIZES := 2400 6400 9999 32000
 

@@ -1,4 +1,4 @@
-#!/bin/python
+#!/bin/python2
 
 import auxiliary, sys, os, shutil
 
@@ -77,6 +77,10 @@ if ret1 < 0 or ret2 < 0 or ret3 < 0:
     sys.exit(0)
 
 
+java_files = os.listdir(working_dir)
+if len(sys.argv) > 2:
+    java_files = ["Predictor" + sys.argv[2] + ".java"]
+
 #test that only Tables and Registers are used
 #Predictor2400=>13 digit
 max_size = -1
@@ -84,7 +88,7 @@ averageAccuracy = [0, 0, 0, 0]
 expectedAccuracy = {"2400": 0.9484, "6400": 0.9513, "9999": 0.9531, "32000": 0.9512}
 failedTests = []
 sizeIndex = -1
-for jf in os.listdir(working_dir):
+for jf in java_files:
     if len(jf) <= 15:               
         continue
     sizeIndex = sizeIndex + 1
