@@ -15,4 +15,4 @@ test:
 	@./test.sh $(size)
 
 clean:
-	rm -rf jar bin *.pyc
+	rm -rf jar bin *.pyc *.tar.gz __pycache__
