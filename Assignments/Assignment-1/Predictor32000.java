@@ -2,71 +2,58 @@ import java.lang.*;
 
 public class Predictor32000 extends Predictor {
 
-    static final int m = 8, mOffset = 2, k = 7, n = 12, l = 2, g = 12, gl = 3;
-    static final int nMask = (1 << n) - 1, mMask = (1 << m) - 1, gMask = (1 << g) - 1;
-    Table _GHR, _PHT, _GPT, _CPT;
-    Register _globalHistory;
-
-    static private int mangle(long big, int small, int mask) {
-        return (int) (((big + small) * (big + small + 1)) / 2 + small) & mask;
-    }
+    static final int m = 2, mOffset = 12, k = 34, n = 7, weight_bits = 7, pht_bits = weight_bits * (k + 1);
+    static final double threshold = ((1 << (weight_bits - 1)) * (k + 1)) * 0.0135;
+    Table _PHT, _GHR;
 
     public Predictor32000() {
-        _GHR = new Table(1 << m, k);
-        _PHT = new Table(1 << Math.max(n, k), l);
-        _GPT = new Table(1 << g, l);
-        _CPT = new Table(1 << g, gl);
-        _globalHistory = new Register(g);
+        _PHT = new Table(1 << n, pht_bits);
+        for (int i = 0; i < _PHT.getNumEntries(); i++)
+            for (int j = 0; j < k; j++)
+                _PHT.setBit(i, j * weight_bits, true);
+
+        _GHR = new Table(1 << m, k + 1);
+        for (int i = 0; i < _GHR.getNumEntries(); i++)
+            _GHR.setBit(i, k, true);
     }
 
     public void Train(long address, boolean outcome, boolean predict) {
-        int globalHistory = _globalHistory.getInteger(0, g - 1);
+        int y = perceptronOutput(address);
+        int phtIndex = (int) address & ((1 << n) - 1);
+        int ghrIndex = (int) (address >> mOffset) & ((1 << m) - 1);
 
-        int cptIdx = mangle(address & gMask, globalHistory, gMask);
-        int cptValue = _CPT.getInteger(cptIdx, 0, gl - 1);
-        boolean local = predictLocal(address), global = predictGlobal(address);
-        if (local != global) {
-            if (local == outcome)
-                _CPT.setInteger(cptIdx, 0, gl - 1, Math.min(cptValue + 1, (1 << gl) - 1));
-            else
-                _CPT.setInteger(cptIdx, 0, gl - 1, Math.max(cptValue - 1, 0));
+        if (outcome != predict || Math.abs(y) < threshold) {
+            for (int i = 0; i <= k; i++) {
+                int weight = _PHT.getInteger(phtIndex, i * weight_bits, (i + 1) * weight_bits - 1);
+                int xi = _GHR.getBit(ghrIndex, i) ? 1 : -1;
+                if (outcome)
+                    weight = Math.min(weight + xi, ((1 << weight_bits) - 1));
+                else
+                    weight = Math.max(weight - xi, 0);
+
+                _PHT.setInteger(phtIndex, i * weight_bits, (i + 1) * weight_bits - 1, weight);
+            }
         }
 
-        int ghrIdx = (int) ((address >> mOffset) & mMask);
-        int phtIdx = mangle(address & nMask, _GHR.getInteger(ghrIdx, 0, k - 1), nMask);
-        int phtValue = _PHT.getInteger(phtIdx, 0, l - 1);
-        if (outcome)
-            _PHT.setInteger(phtIdx, 0, l - 1, Math.min(phtValue + 1, (1 << l) - 1));
-        else
-            _PHT.setInteger(phtIdx, 0, l - 1, Math.max(phtValue - 1, 0));
-
-        int gptValue = _GPT.getInteger(globalHistory, 0, l - 1);
-        if (outcome)
-            _GPT.setInteger(globalHistory, 0, l - 1, Math.min(gptValue + 1, (1 << l) - 1));
-        else
-            _GPT.setInteger(globalHistory, 0, l - 1, Math.max(gptValue - 1, 0));
-
-        _GHR.setInteger(ghrIdx, 0, k - 2, _GHR.getInteger(ghrIdx, 1, k - 1));
-        _GHR.setBit(ghrIdx, k - 1, outcome);
-
-        _globalHistory.setInteger(0, g - 2, (globalHistory << 1) & ((1 << g) - 1));
-        _globalHistory.setBitAtIndex(g - 1, outcome);
+        for (int i = 0; i < k - 1; i++)
+            _GHR.setBit(ghrIndex, i, _GHR.getBit(ghrIndex, i + 1));
+        _GHR.setBit(ghrIndex, k - 1, outcome);
     }
 
-    private boolean predictLocal(long address) {
-        return _PHT.getBit(mangle(address & nMask,
-                    _GHR.getInteger((int) ((address >> mOffset) & mMask), 0, k - 1), nMask), 0);
-    }
-
-    private boolean predictGlobal(long address) {
-        int globalHistory = _globalHistory.getInteger(0, g - 1);
-        return _GPT.getBit(globalHistory, 0);
+    private int perceptronOutput(long address) {
+        int y = 0;
+        int phtIndex = (int) address & ((1 << n) - 1);
+        int ghrIndex = (int) (address >> mOffset) & ((1 << m) - 1);
+        for (int i = 0; i <= k; i++) {
+            int weight = _PHT.getInteger(phtIndex, i * weight_bits, (i + 1) * weight_bits - 1) - (1 << (weight_bits - 1));
+            int xi = _GHR.getBit(ghrIndex, i) ? 1 : -1;
+            y += weight * xi;
+        }
+        return y;
     }
 
     public boolean predict(long address) {
-        if (_CPT.getBit(mangle(address & gMask, _globalHistory.getInteger(0, g - 1), gMask), 0))
-            return predictLocal(address);
-        return predictGlobal(address);
+        return perceptronOutput(address) > 0;
     }
 
 }
