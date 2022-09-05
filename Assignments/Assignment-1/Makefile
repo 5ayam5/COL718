@@ -11,5 +11,8 @@ $(SIZES): jar/BranchPredictor.jar
 	@java -jar jar/BranchPredictor.jar traces/trace4 $@
 	@java -jar jar/BranchPredictor.jar traces/trace5 $@
 
+test:
+	@./test.sh $(size)
+
 clean:
-	rm -rf jar bin
+	rm -rf jar bin *.pyc

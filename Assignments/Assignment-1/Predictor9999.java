@@ -14,8 +14,12 @@ public class Predictor9999 extends Predictor {
     public Predictor9999() {
         _GHR = new Table(1 << m, k);
         _PHT = new Table(1 << Math.max(n, k), pht_bits);
+        for (int i = 0; i < _PHT.getNumEntries(); i++)
+            _PHT.setBit(i, 0, true);
         _GPT = new Table(1 << g, gpt_bits);
         _CPT = new Table(1 << c, cpt_bits);
+        for (int i = 0; i < _CPT.getNumEntries(); i++)
+            _CPT.setBit(i, 0, true);
         _globalHistory = new Register(g);
     }
 
